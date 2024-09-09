@@ -33,6 +33,10 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static('public'));
 
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'login.html'));
+});
+
 // Register new users
 app.post('/api/signup', async (req, res) => {
     const { username, password } = req.body;
