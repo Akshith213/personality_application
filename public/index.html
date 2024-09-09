@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Personality Traits Radar Chart</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/openai@4.0.0/dist/openai.min.js"></script>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.14.0/Sortable.min.js"></script>
+    <script>
+        let personalityData = [
+        {"name": "Dynamic Leader with Balanced Emotions and Practical Insights", "values": [0.8, 0.5, 0.8, 0.5, 0.2]},
+        {"name": "Calm Strategist with Stable Mood and Conventional Approach", "values": [0.5, 0.2, 0.8, 0.2, 0.8]},
+        {"name": "Engaging Organizer with Emotional Control and Social Skills", "values": [0.5, 0.5, 0.2, 0.8, 0.2]},
+        {"name": "Reserved Leader with Practical Insights and Inner Strength", "values": [0.5, 0.5, 0.2, 0.2, 0.8]},
+        {"name": "Socially Skilled Strategist with Critical Mood and Stability", "values": [0.2, 0.2, 0.8, 0.2, 0.8]},
+        {"name": "Expressive Rebel with Emotional Intensity and Innovation", "values": [0.8, 0.2, 0.2, 0.8, 0.8]},
+        {"name": "Stoic Pessimist with Emotional Control and Realistic Approach", "values": [0.2, 0.2, 0.2, 0.8, 0.2]},
+        {"name": "Bold Explorer with Practical Insights and Emotional Intensity", "values": [0.8, 0.2, 0.2, 0.5, 0.8]},
+        {"name": "Quiet Observer with Balanced Emotions and Practical Approach", "values": [0.2, 0.5, 0.2, 0.5, 0.2]},
+        {"name": "Dynamic Enthusiast with Practical Insights and Social Skills", "values": [0.8, 0.2, 0.5, 0.8, 0.8]},
+        {"name": "Sociable Traditionalist with Balanced Emotions and Practical Skills", "values": [0.8, 0.5, 0.5, 0.5, 0.2]},
+        {"name": "Cautious Critic with Emotional Control and Practical Insights", "values": [0.2, 0.2, 0.5, 0.8, 0.2]},
+        {"name": "Adventurous Idealist with Emotional Intensity and Innovation", "values": [0.8, 0.5, 0.2, 0.8, 0.8]},
+        {"name": "Reserved Visionary with Practical Insights and Emotional Control", "values": [0.2, 0.2, 0.2, 0.8, 0.8]},
+        {"name": "Charismatic Diplomat with Balanced Emotions and Innovation", "values": [0.8, 0.5, 0.8, 0.5, 0.8]},
+        {"name": "Gentle Guardian with Practical Insights and Balanced Emotions", "values": [0.2, 0.8, 0.2, 0.8, 0.2]},
+        {"name": "Assertive Pioneer with Emotional Intensity and Practical Insights", "values": [0.8, 0.2, 0.8, 0.8, 0.8]},
+        {"name": "Introspective Strategist with Emotional Control and Innovation", "values": [0.2, 0.2, 0.8, 0.8, 0.8]},
+        {"name": "Balanced Harmonizer with Practical Skills and Social Insights", "values": [0.5, 0.8, 0.8, 0.5, 0.5]},
+        {"name": "Confident Organizer with Balanced Emotions and Practical Skills", "values": [0.8, 0.5, 0.5, 0.5, 0.2]},
+        {"name": "Commanding Leader with Emotional Intensity and Practical Insights", "values": [0.8, 0.8, 0.8, 0.2, 0.2]},
+        {"name": "Contemplative Artist with Balanced Emotions and Emotional Intensity", "values": [0.2, 0.8, 0.2, 0.2, 0.8]},
+        {"name": "Analytical Skeptic with Practical Insights and Emotional Control", "values": [0.2, 0.2, 0.5, 0.8, 0.5]},
+        {"name": "Visionary Leader with Balanced Emotions and Practical Insights", "values": [0.8, 0.8, 0.8, 0.5, 0.8]},
+        {"name": "Compassionate Stabilizer with Practical Insights and Social Skills", "values": [0.5, 0.8, 0.8, 0.8, 0.5]},
+        {"name": "Energetic Innovator with Emotional Intensity and Practical Skills", "values": [0.8, 0.5, 0.8, 0.2, 0.8]},
+        {"name": "Thoughtful Philosopher with Emotional Intensity and Practical Insights", "values": [0.2, 0.8, 0.5, 0.8, 0.5]},
+        {"name": "Driven Achiever with Balanced Emotions and Practical Skills", "values": [0.8, 0.8, 0.8, 0.5, 0.2]},
+        {"name": "Empathetic Protector with Practical Insights and Balanced Emotions", "values": [0.2, 0.8, 0.8, 0.8, 0.2]},
+        {"name": "Unconventional Theorist with Emotional Intensity and Practical Skills", "values": [0.5, 0.2, 0.2, 0.8, 0.8]},
+        {"name": "Kindhearted Pragmatist with Balanced Emotions and Practical Insights", "values": [0.2, 0.8, 0.5, 0.8, 0.2]},
+        {"name": "Warm Idealist with Practical Insights and Emotional Intensity", "values": [0.5, 0.8, 0.2, 0.8, 0.8]},
+        {"name": "Influential Motivator with Balanced Emotions and Innovation", "values": [0.8, 0.8, 0.8, 0.5, 0.8]},
+        {"name": "Reflective Mediator with Practical Insights and Balanced Emotions", "values": [0.2, 0.8, 0.5, 0.5, 0.8]},
+        {"name": "Reserved Innovator with Balanced Emotions and Practical Insights", "values": [0.2, 0.5, 0.8, 0.5, 0.8]},
+        {"name": "Enthusiastic Creator with Emotional Intensity and Practical Skills", "values": [0.8, 0.5, 0.8, 0.5, 0.8]},
+        {"name": "Methodical Thinker with Practical Insights and Balanced Emotions", "values": [0.2, 0.5, 0.8, 0.2, 0.8]},
+        {"name": "Devoted Scholar with Practical Insights and Emotional Intensity", "values": [0.2, 0.8, 0.8, 0.2, 0.8]},
+        {"name": "Cooperative Realist with Practical Skills and Balanced Emotions", "values": [0.5, 0.8, 0.5, 0.5, 0.2]},
+        {"name": "Charismatic Optimist with Balanced Emotions and Emotional Intensity", "values": [0.8, 0.8, 0.8, 0.2, 0.8]},
+        {"name": "Reflective Dreamer with Practical Insights and Balanced Emotions", "values": [0.2, 0.5, 0.5, 0.8, 0.8]},
+        {"name": "Empathetic Visionary with Practical Skills and Balanced Emotions", "values": [0.5, 0.8, 0.8, 0.5, 0.8]},
+        {"name": "Dedicated Innovator with Emotional Intensity and Practical Insights", "values": [0.2, 0.8, 0.8, 0.5, 0.8]}
+        // Add more personalities as needed
+    ];
+    </script>
+</head>
+<body>
+    <div class="container">
+        <h1>Personality Traits Radar Chart</h1>
+        <button id="logoutButton">Logout</button>
+        <div class="selector-container">
+            <label for="kValue">Select K:</label>
+            <select id="kValue">
+                <option value="1">1</option>
+                <option value="2">2</option>
+                <option value="3">3</option>
+                <option value="4">4</option>
+                <option value="5">5</option>
+            </select>
+            <button id="applyKNN">Apply KNN</button>
+        </div>
+        <div class="content">
+            <div id="radarChart"></div>
+            <div class="personality-list">
+                <h3>Personality List</h3>
+                <ul id="personalityNames"></ul>
+            </div>
+            <div class="sorting-bucket">
+                <h3>Sorting Bucket</h3>
+                <div class="bucket-controls">
+                    <label for="traitSelect">Add Trait:</label>
+                    <select id="traitSelect">
+                        <option value="Openness">Openness</option>
+                        <option value="Conscientiousness">Conscientiousness</option>
+                        <option value="Extraversion">Extraversion</option>
+                        <option value="Agreeableness">Agreeableness</option>
+                        <option value="Neuroticism">Neuroticism</option>
+                    </select>
+                    <button id="addTraitButton">Add</button>
+                </div>
+                <ul id="sortingBucket" class="sortable"></ul>
+                <button id="sortButton">Sort Personalities</button>
+            </div>
+        </div>
+        <button id="resetButton">Reset</button>
+        <div class="selected-personalities">
+            <h3>Selected Personalities</h3>
+            <ul id="selectedPersonalities"></ul>
+            <button id="doneButton" disabled>Done</button>
+        </div>
+        <div id="responseMessage"></div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
