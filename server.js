@@ -3,18 +3,27 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const cors = require('cors');
 const mysql = require('mysql2');
+const fs = require('fs');
 const path = require('path');
 require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 5002;
 
-// Create a MySQL connection pool
+// SSL certificate
+const ca = [fs.readFileSync(path.join(__dirname, 'ca.pem'), 'utf8')];
+
+// Create a MySQL connection pool for Aiven MySQL
 const pool = mysql.createPool({
-    host: 'localhost',
-    user: process.env.DB_USER,
-    password: process.env.DB_PASSWORD,
-    database: process.env.DB_NAME,
+    host: 'personality-database-personality-project.g.aivencloud.com',
+    user: 'avnadmin',
+    password: 'AVNS_fSdPhjb4b3dPflhzkAV',
+    database: 'defaultdb',
+    port: 23898,
+    ssl: {
+        ca: ca,
+        rejectUnauthorized: true
+    },
     waitForConnections: true,
     connectionLimit: 10,
     queueLimit: 0
@@ -97,8 +106,6 @@ app.post('/api/savePersonalities', async (req, res) => {
         res.status(500).json({ error: "Failed to save personalities, error: " + err.message });
     }
 });
-
-
 
 // Optional: Protect routes
 app.get('/api/protected', (req, res) => {
