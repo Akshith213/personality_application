@@ -11,15 +11,15 @@ const app = express();
 const PORT = process.env.PORT || 5002;
 
 // SSL certificate
-const ca = [fs.readFileSync(path.join(__dirname, 'ca.pem'), 'utf8')];
+const ca = [fs.readFileSync(path.join(__dirname, process.env.SSL_CA_PATH), 'utf8')];
 
 // Create a MySQL connection pool for Aiven MySQL
 const pool = mysql.createPool({
-    host: 'personality-database-personality-project.g.aivencloud.com',
-    user: 'avnadmin',
-    password: 'AVNS_fSdPhjb4b3dPflhzkAV',
-    database: 'defaultdb',
-    port: 23898,
+    host: process.env.DB_HOST,
+    user: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+    database: process.env.DB_NAME,
+    port: process.env.DB_PORT,
     ssl: {
         ca: ca,
         rejectUnauthorized: true
@@ -28,6 +28,7 @@ const pool = mysql.createPool({
     connectionLimit: 10,
     queueLimit: 0
 });
+
 
 // Helper function for using async/await with SQL queries
 function query(sql, params) {
