@@ -97,6 +97,7 @@ document.addEventListener("DOMContentLoaded", function() {
     }
 
     function initializeRadarChart(traits, values = traits.map(() => 0.5)) {
+
         console.log("Initializing radar chart with traits:", traits, "and values:", values);
         const levels = levelsBig5;
         const numTraits = traits.length;
@@ -109,6 +110,9 @@ document.addEventListener("DOMContentLoaded", function() {
             value: values[i],
             angle: angleSlice * i
         }));
+
+        
+
 
         d3.select("#radarChart").select("svg").remove();
         const svg = d3.select("#radarChart").append("svg")
@@ -146,37 +150,37 @@ document.addEventListener("DOMContentLoaded", function() {
             .style("fill", "lightblue")
             .style("fill-opacity", 0.6);
 
-        const drag = d3.drag()
-            .on("drag", function(event, d) {
-                const distance = Math.sqrt(Math.pow(event.x, 2) + Math.pow(event.y, 2));
-                const newValue = rScale.invert(distance);
-                d.value = levels.reduce((prev, curr) => (Math.abs(curr - newValue) < Math.abs(prev - newValue) ? curr : prev));
-                updateRadarChart(pointsData, svg, rScale, d);
-            });
+        // const drag = d3.drag()
+        //     .on("drag", function(event, d) {
+        //         const distance = Math.sqrt(Math.pow(event.x, 2) + Math.pow(event.y, 2));
+        //         const newValue = rScale.invert(distance);
+        //         d.value = levels.reduce((prev, curr) => (Math.abs(curr - newValue) < Math.abs(prev - newValue) ? curr : prev));
+        //         updateRadarChart(pointsData, svg, rScale, d);
+        //     });
 
-        svg.selectAll(".radar-point")
-            .data(pointsData)
-            .enter()
-            .append("circle")
-            .attr("class", "radar-point")
-            .attr("r", 4)
-            .attr("cx", d => rScale(d.value) * Math.cos(d.angle - Math.PI / 2))
-            .attr("cy", d => rScale(d.value) * Math.sin(d.angle - Math.PI / 2))
-            .style("fill", "navy")
-            .call(drag);
+        // svg.selectAll(".radar-point")
+        //     .data(pointsData)
+        //     .enter()
+        //     .append("circle")
+        //     .attr("class", "radar-point")
+        //     .attr("r", 4)
+        //     .attr("cx", d => rScale(d.value) * Math.cos(d.angle - Math.PI / 2))
+        //     .attr("cy", d => rScale(d.value) * Math.sin(d.angle - Math.PI / 2))
+        //     .style("fill", "navy")
+        //     .call(drag);
 
-        function updateRadarChart(pointsData, svg, rScale, draggedPoint) {
-            radarArea.datum(pointsData).attr("d", d3.lineRadial()
-                .angle(d => d.angle)
-                .radius(d => rScale(d.value))
-                .curve(d3.curveLinearClosed));
-            svg.selectAll(".radar-point")
-                .data(pointsData)
-                .attr("cx", d => rScale(d.value) * Math.cos(d.angle - Math.PI / 2))
-                .attr("cy", d => rScale(d.value) * Math.sin(d.angle - Math.PI / 2))
-                .style("fill", "navy")
-                .attr("r", 4);
-        }
+        // function updateRadarChart(pointsData, svg, rScale, draggedPoint) {
+        //     radarArea.datum(pointsData).attr("d", d3.lineRadial()
+        //         .angle(d => d.angle)
+        //         .radius(d => rScale(d.value))
+        //         .curve(d3.curveLinearClosed));
+        //     svg.selectAll(".radar-point")
+        //         .data(pointsData)
+        //         .attr("cx", d => rScale(d.value) * Math.cos(d.angle - Math.PI / 2))
+        //         .attr("cy", d => rScale(d.value) * Math.sin(d.angle - Math.PI / 2))
+        //         .style("fill", "navy")
+        //         .attr("r", 4);
+        // }
     }
 
     function calculateDistance(values1, values2) {
@@ -281,9 +285,6 @@ document.addEventListener("DOMContentLoaded", function() {
     }
 
     function addPersonality(name) {
-        if (selectedPersonalities.children.length >= 5) {
-            return;
-        }
         if (!Array.from(selectedPersonalities.children).some(item => item.textContent.includes(name))) {
             const li = document.createElement("li");
             li.textContent = name;
@@ -300,13 +301,17 @@ document.addEventListener("DOMContentLoaded", function() {
         }
     }
 
+    function generateRandomCode() {
+        return Math.floor(Math.random() * 1000000).toString().padStart(6, '0');
+    }
+
     function updateDoneButtonState() {
-        doneButton.disabled = selectedPersonalities.children.length < 5;
+        doneButton.disabled = selectedPersonalities.children.length ==0;
     }
 
     function addPersonalityToSelected(name) {
         const existing = Array.from(selectedPersonalities.children).some(item => item.textContent.includes(name));
-        if (!existing && selectedPersonalities.children.length < 5) {
+        if (!existing) {
             const li = document.createElement("li");
             li.textContent = name;
             const deleteSpan = document.createElement("span");
@@ -350,6 +355,9 @@ document.addEventListener("DOMContentLoaded", function() {
     initializeSortable();
 
     document.getElementById('doneButton').addEventListener('click', async function() {
+        const randomCode = generateRandomCode();
+        document.getElementById('generatedCodeDisplay').textContent = `Your code is: ${randomCode}`;
+        console.log("Generated code:", randomCode);
         const selectedPersonalityNodes = document.querySelectorAll('#selectedPersonalities li');
         const personalities = Array.from(selectedPersonalityNodes).map(node => {
             // Remove any extraneous characters by using a regular expression that captures only the name
