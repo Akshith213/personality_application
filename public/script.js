@@ -59,16 +59,16 @@ document.addEventListener("DOMContentLoaded", function() {
         {"name": "Dedicated Innovator with Emotional Intensity and Practical Insights", "values": [0.2, 0.8, 0.8, 0.5, 0.8]}
         // Add more personalities as needed
     ];
-    
+
     function loadPersonalities() {
         const personalityList = d3.select("#personalityNames");
         personalityList.selectAll("*").remove(); // Clear existing list items before adding new ones
-    
+
         personalityData.forEach(personality => {
             const li = personalityList.append("li")
                 .text(personality.name)
                 .on("click", () => {
-                    initializeRadarChart(currentTraits, personality.values);
+                    showPersonalityRadar(personality.values);
                 });
             const addSymbol = document.createElement("span");
             addSymbol.classList.add("add-symbol");
@@ -81,7 +81,7 @@ document.addEventListener("DOMContentLoaded", function() {
             li.node().appendChild(addSymbol);
         });
     }
-    
+
     function drawConcentricCircles(svg, rScale, levels) {
         const circleAxes = svg.selectAll(".circle-axis")
             .data(levels)
@@ -96,25 +96,17 @@ document.addEventListener("DOMContentLoaded", function() {
             .style("stroke-opacity", 0.7);
     }
 
-    function initializeRadarChart(traits, values = traits.map(() => 0.5)) {
-
-        console.log("Initializing radar chart with traits:", traits, "and values:", values);
+    function initializeRadarChartBase(traits) {
         const levels = levelsBig5;
         const numTraits = traits.length;
         const width = 600, height = 600;
         const margin = 80, radius = Math.min(width, height) / 2 - margin;
         const angleSlice = Math.PI * 2 / numTraits;
         const rScale = d3.scaleLinear().range([0, radius]).domain([0, 1]);
-        const pointsData = traits.map((trait, i) => ({
-            trait: trait,
-            value: values[i],
-            angle: angleSlice * i
-        }));
 
-        
-
-
+        // Remove existing SVG if any
         d3.select("#radarChart").select("svg").remove();
+
         const svg = d3.select("#radarChart").append("svg")
             .attr("width", width)
             .attr("height", height)
@@ -122,8 +114,9 @@ document.addEventListener("DOMContentLoaded", function() {
             .attr("transform", `translate(${width / 2}, ${height / 2})`);
 
         drawConcentricCircles(svg, rScale, levels);
+
         const axes = svg.selectAll(".axis")
-            .data(pointsData)
+            .data(traits)
             .enter()
             .append("g")
             .attr("class", "axis");
@@ -131,56 +124,67 @@ document.addEventListener("DOMContentLoaded", function() {
         axes.append("line")
             .attr("x1", 0)
             .attr("y1", 0)
-            .attr("x2", d => rScale(1) * Math.cos(d.angle - Math.PI / 2))
-            .attr("y2", d => rScale(1) * Math.sin(d.angle - Math.PI / 2))
+            .attr("x2", (d, i) => rScale(1) * Math.cos(angleSlice * i - Math.PI / 2))
+            .attr("y2", (d, i) => rScale(1) * Math.sin(angleSlice * i - Math.PI / 2))
             .style("stroke", "grey");
 
         axes.append("text")
-            .attr("x", d => rScale(1.2) * Math.cos(d.angle - Math.PI / 2))
-            .attr("y", d => rScale(1.2) * Math.sin(d.angle - Math.PI / 2))
-            .text(d => d.trait)
+            .attr("x", (d, i) => rScale(1.2) * Math.cos(angleSlice * i - Math.PI / 2))
+            .attr("y", (d, i) => rScale(1.2) * Math.sin(angleSlice * i - Math.PI / 2))
+            .text(d => d)
             .style("text-anchor", "middle");
 
-        const radarArea = svg.append("path")
+        return { svg: svg, rScale: rScale, angleSlice: angleSlice };
+    }
+
+    function drawRadarArea(svg, rScale, angleSlice, values, color, fillOpacity, className) {
+        const pointsData = values.map((value, i) => ({
+            value: value,
+            angle: angleSlice * i
+        }));
+
+        svg.append("path")
             .datum(pointsData)
+            .attr("class", className)
             .attr("d", d3.lineRadial()
                 .angle(d => d.angle)
                 .radius(d => rScale(d.value))
                 .curve(d3.curveLinearClosed))
-            .style("fill", "lightblue")
-            .style("fill-opacity", 0.6);
+            .style("fill", color)
+            .style("fill-opacity", fillOpacity);
+    }
 
-        // const drag = d3.drag()
-        //     .on("drag", function(event, d) {
-        //         const distance = Math.sqrt(Math.pow(event.x, 2) + Math.pow(event.y, 2));
-        //         const newValue = rScale.invert(distance);
-        //         d.value = levels.reduce((prev, curr) => (Math.abs(curr - newValue) < Math.abs(prev - newValue) ? curr : prev));
-        //         updateRadarChart(pointsData, svg, rScale, d);
-        //     });
+    function showPersonalityRadar(personalityValues) {
+        d3.select("#radarChart svg g").selectAll(".individual-radar-area").remove(); // Remove any existing individual radar area
+        drawRadarArea(radarChartBase.svg, radarChartBase.rScale, radarChartBase.angleSlice, personalityValues, "lightblue", 0.6, "individual-radar-area");
+    }
 
-        // svg.selectAll(".radar-point")
-        //     .data(pointsData)
-        //     .enter()
-        //     .append("circle")
-        //     .attr("class", "radar-point")
-        //     .attr("r", 4)
-        //     .attr("cx", d => rScale(d.value) * Math.cos(d.angle - Math.PI / 2))
-        //     .attr("cy", d => rScale(d.value) * Math.sin(d.angle - Math.PI / 2))
-        //     .style("fill", "navy")
-        //     .call(drag);
+    function showAverageRadar(averageValues) {
+        d3.select("#radarChart svg g").selectAll(".average-radar-area").remove(); // Remove any existing average radar area
+        drawRadarArea(radarChartBase.svg, radarChartBase.rScale, radarChartBase.angleSlice, averageValues, "red", 0.5, "average-radar-area");
+    }
 
-        // function updateRadarChart(pointsData, svg, rScale, draggedPoint) {
-        //     radarArea.datum(pointsData).attr("d", d3.lineRadial()
-        //         .angle(d => d.angle)
-        //         .radius(d => rScale(d.value))
-        //         .curve(d3.curveLinearClosed));
-        //     svg.selectAll(".radar-point")
-        //         .data(pointsData)
-        //         .attr("cx", d => rScale(d.value) * Math.cos(d.angle - Math.PI / 2))
-        //         .attr("cy", d => rScale(d.value) * Math.sin(d.angle - Math.PI / 2))
-        //         .style("fill", "navy")
-        //         .attr("r", 4);
-        // }
+    function updateAverageValues() {
+        const selectedPersonalityNodes = document.querySelectorAll('#selectedPersonalities li');
+        const totalValues = Array.from(selectedPersonalityNodes).reduce((acc, node) => {
+            const name = node.textContent.replace(/\×$/, '').trim();
+            const personality = personalityData.find(p => p.name === name);
+            if (personality) {
+                personality.values.forEach((value, index) => {
+                    acc[index] += value;
+                });
+            }
+            return acc;
+        }, new Array(5).fill(0));
+
+        const numPersonalities = selectedPersonalityNodes.length;
+        if (numPersonalities > 0) {
+            const averageValues = totalValues.map(value => value / numPersonalities);
+            showAverageRadar(averageValues);
+        } else {
+            // Remove the average radar area if no personalities are selected
+            d3.select("#radarChart svg g").selectAll(".average-radar-area").remove();
+        }
     }
 
     function calculateDistance(values1, values2) {
@@ -213,13 +217,11 @@ document.addEventListener("DOMContentLoaded", function() {
         });
     }
 
-
     function highlightTopKPersonalities(topKPersonalities) {
         const listItems = document.querySelectorAll("#personalityNames li");
         listItems.forEach(li => {
             const personalityName = li.textContent.trim();
-            // Assuming topKPersonalities contains objects with a 'name' property
-            if (topKPersonalities.map(personality => personality.name.trim().toLowerCase()).includes(personalityName.toLowerCase())) {
+            if (topKPersonalities.includes(personalityName)) {
                 li.style.fontWeight = 'bold';
                 li.style.backgroundColor = 'lightgrey';
             } else {
@@ -294,10 +296,12 @@ document.addEventListener("DOMContentLoaded", function() {
             deleteSpan.addEventListener("click", () => {
                 selectedPersonalities.removeChild(li);
                 updateDoneButtonState();
+                updateAverageValues(); // Recalculate averages when a personality is removed
             });
             li.appendChild(deleteSpan);
             selectedPersonalities.appendChild(li);
             updateDoneButtonState();
+            updateAverageValues(); // Recalculate averages when a new personality is added
         }
     }
 
@@ -306,7 +310,7 @@ document.addEventListener("DOMContentLoaded", function() {
     }
 
     function updateDoneButtonState() {
-        doneButton.disabled = selectedPersonalities.children.length ==0;
+        doneButton.disabled = selectedPersonalities.children.length == 0;
     }
 
     function addPersonalityToSelected(name) {
@@ -321,46 +325,58 @@ document.addEventListener("DOMContentLoaded", function() {
                 event.stopPropagation(); // Prevent click event from propagating to li
                 selectedPersonalities.removeChild(li);
                 updateDoneButtonState();
+                updateAverageValues(); // Recalculate averages when a personality is removed
             });
-    
+
             li.addEventListener('click', (event) => {
                 const personality = personalityData.find(p => p.name === name);
                 if (personality) {
-                    initializeRadarChart(currentTraits, personality.values);
+                    showPersonalityRadar(personality.values);
                 }
             });
-    
+
             li.appendChild(deleteSpan);
             selectedPersonalities.appendChild(li);
             updateDoneButtonState();
+            updateAverageValues(); // Recalculate averages when a new personality is added
         }
     }
 
     resetButton.addEventListener('click', function() {
-        initializeRadarChart(currentTraits);
+        // Remove both individual and average radar areas
+        d3.select("#radarChart svg g").selectAll(".individual-radar-area").remove();
+        d3.select("#radarChart svg g").selectAll(".average-radar-area").remove();
         d3.selectAll("#personalityNames li")
             .style("font-weight", "normal")
             .style("background-color", "transparent");
     });
 
     applyKNNButton.addEventListener('click', function() {
-        const currentValues = d3.selectAll(".radar-point").data().map(d => d.value);
-        applyKNN(currentValues);
+        // Get the currentValues from the average radar area or from selected personalities
+        const averageArea = d3.select(".average-radar-area");
+        if (!averageArea.empty()) {
+            const averageValues = averageArea.datum().map(d => d.value);
+            applyKNN(averageValues);
+        } else {
+            alert("Please select personalities to compute the average before applying KNN.");
+        }
     });
 
     sortButton.addEventListener('click', sortPersonalities);
     addTraitButton.addEventListener('click', addTraitToBucket);
     loadPersonalities();
-    initializeRadarChart(currentTraits);
     initializeSortable();
 
+    // Initialize the radar chart base once
+    const radarChartBase = initializeRadarChartBase(currentTraits);
+
     document.getElementById('doneButton').addEventListener('click', async function() {
-        const randomCode = generateRandomCode();
-        document.getElementById('generatedCodeDisplay').textContent = `Your code is: ${randomCode}`;
-        console.log("Generated code:", randomCode);
+        const code = generateRandomCode();
+        document.getElementById('generatedCodeDisplay').textContent = `Your code is: ${code}`;
+        console.log("Generated code:", code);
+    
         const selectedPersonalityNodes = document.querySelectorAll('#selectedPersonalities li');
         const personalities = Array.from(selectedPersonalityNodes).map(node => {
-            // Remove any extraneous characters by using a regular expression that captures only the name
             const name = node.textContent.replace(/\×$/, '').trim();
             const personality = personalityData.find(p => p.name === name);
             if (!personality) {
@@ -370,16 +386,13 @@ document.addEventListener("DOMContentLoaded", function() {
             return { name, values: personality.values };
         }).filter(p => p !== null); // Filter out any null entries due to missing personalities
     
-        const username = localStorage.getItem('username'); // Make sure username is stored in localStorage
-    
         try {
-            const response = await fetch('http://localhost:5002/api/savePersonalities', {
+            const response = await fetch('/api/savePersonalities', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${localStorage.getItem('token')}` // Make sure the token is stored and sent correctly
+                    'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ username, personalities })
+                body: JSON.stringify({ code, personalities })
             });
     
             const result = await response.json();
@@ -393,22 +406,15 @@ document.addEventListener("DOMContentLoaded", function() {
             document.getElementById('responseMessage').textContent = 'Failed to save personalities. Please try again.';
         }
     });
+    
+
     document.getElementById('logoutButton').addEventListener('click', function() {
         localStorage.removeItem('token');   // Remove the authentication token
         localStorage.removeItem('username'); // Remove the stored username
         alert('Logged out successfully!');
         window.location.href = 'login.html'; // Redirect the user to the login page
     });
-    
 });
-
-
-
-
-
-
-
-
 
 
 
