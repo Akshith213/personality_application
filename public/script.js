@@ -66,6 +66,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
         personalityData.forEach(personality => {
             const li = personalityList.append("li")
+                .attr("data-name", personality.name) // Added data attribute
                 .text(personality.name)
                 .on("click", () => {
                     showPersonalityRadar(personality.values);
@@ -75,10 +76,14 @@ document.addEventListener("DOMContentLoaded", function() {
             addSymbol.innerHTML = "+";
             addSymbol.addEventListener("click", (event) => {
                 event.stopPropagation(); // Prevent triggering the li's click event
-                addPersonality(personality.name); // Existing function to handle UI addition
                 addPersonalityToSelected(personality.name); // Ensure the radar chart can be updated from the selected list
             });
             li.node().appendChild(addSymbol);
+
+            // Check if this personality is in selectedPersonalities and add 'selected' class
+            if (Array.from(selectedPersonalities.children).some(item => item.textContent.replace(/\×$/, '').trim() === personality.name)) {
+                li.classed('selected', true);
+            }
         });
     }
 
@@ -137,21 +142,29 @@ document.addEventListener("DOMContentLoaded", function() {
         return { svg: svg, rScale: rScale, angleSlice: angleSlice };
     }
 
-    function drawRadarArea(svg, rScale, angleSlice, values, color, fillOpacity, className) {
+    function drawRadarArea(svg, rScale, angleSlice, values, color, fillOpacity, className, fillArea = true) {
         const pointsData = values.map((value, i) => ({
             value: value,
             angle: angleSlice * i
         }));
 
-        svg.append("path")
+        const path = svg.append("path")
             .datum(pointsData)
             .attr("class", className)
             .attr("d", d3.lineRadial()
                 .angle(d => d.angle)
                 .radius(d => rScale(d.value))
                 .curve(d3.curveLinearClosed))
-            .style("fill", color)
-            .style("fill-opacity", fillOpacity);
+            .style("stroke", color)
+            .style("stroke-width", 2)
+            .style("stroke-opacity", 1);
+
+        if (fillArea) {
+            path.style("fill", color)
+                .style("fill-opacity", fillOpacity);
+        } else {
+            path.style("fill", "none");
+        }
     }
 
     function showPersonalityRadar(personalityValues) {
@@ -161,7 +174,16 @@ document.addEventListener("DOMContentLoaded", function() {
 
     function showAverageRadar(averageValues) {
         d3.select("#radarChart svg g").selectAll(".average-radar-area").remove(); // Remove any existing average radar area
-        drawRadarArea(radarChartBase.svg, radarChartBase.rScale, radarChartBase.angleSlice, averageValues, "red", 0.5, "average-radar-area");
+        drawRadarArea(
+            radarChartBase.svg,
+            radarChartBase.rScale,
+            radarChartBase.angleSlice,
+            averageValues,
+            "red",
+            0.5,
+            "average-radar-area",
+            false // Do not fill the area
+        );
     }
 
     function updateAverageValues() {
@@ -208,11 +230,9 @@ document.addEventListener("DOMContentLoaded", function() {
         const list = document.getElementById("personalityNames");
         const items = Array.from(list.childNodes);
         topKPersonalities.forEach(personalityName => {
-            const item = items.find(item => item.textContent.includes(personalityName));
+            const item = items.find(item => item.textContent.replace(/\×$/, '').trim() === personalityName);
             if (item) {
                 list.insertBefore(item, list.firstChild);
-                item.style.fontWeight = 'bold';
-                item.style.backgroundColor = 'lightgrey';
             }
         });
     }
@@ -220,14 +240,13 @@ document.addEventListener("DOMContentLoaded", function() {
     function highlightTopKPersonalities(topKPersonalities) {
         const listItems = document.querySelectorAll("#personalityNames li");
         listItems.forEach(li => {
-            const personalityName = li.textContent.trim();
+            const personalityName = li.getAttribute('data-name');
             if (topKPersonalities.includes(personalityName)) {
-                li.style.fontWeight = 'bold';
-                li.style.backgroundColor = 'lightgrey';
+                li.classList.add('top-k');
             } else {
-                li.style.fontWeight = 'normal';
-                li.style.backgroundColor = 'transparent';
+                li.classList.remove('top-k');
             }
+            // Keep 'selected' class intact
         });
     }
 
@@ -286,35 +305,8 @@ document.addEventListener("DOMContentLoaded", function() {
         });
     }
 
-    function addPersonality(name) {
-        if (!Array.from(selectedPersonalities.children).some(item => item.textContent.includes(name))) {
-            const li = document.createElement("li");
-            li.textContent = name;
-            const deleteSpan = document.createElement("span");
-            deleteSpan.classList.add("delete-symbol");
-            deleteSpan.innerHTML = "&times;";
-            deleteSpan.addEventListener("click", () => {
-                selectedPersonalities.removeChild(li);
-                updateDoneButtonState();
-                updateAverageValues(); // Recalculate averages when a personality is removed
-            });
-            li.appendChild(deleteSpan);
-            selectedPersonalities.appendChild(li);
-            updateDoneButtonState();
-            updateAverageValues(); // Recalculate averages when a new personality is added
-        }
-    }
-
-    function generateRandomCode() {
-        return Math.floor(Math.random() * 1000000).toString().padStart(6, '0');
-    }
-
-    function updateDoneButtonState() {
-        doneButton.disabled = selectedPersonalities.children.length == 0;
-    }
-
     function addPersonalityToSelected(name) {
-        const existing = Array.from(selectedPersonalities.children).some(item => item.textContent.includes(name));
+        const existing = Array.from(selectedPersonalities.children).some(item => item.textContent.replace(/\×$/, '').trim() === name);
         if (!existing) {
             const li = document.createElement("li");
             li.textContent = name;
@@ -326,6 +318,12 @@ document.addEventListener("DOMContentLoaded", function() {
                 selectedPersonalities.removeChild(li);
                 updateDoneButtonState();
                 updateAverageValues(); // Recalculate averages when a personality is removed
+
+                // Remove the highlight from the main list
+                const personalityLi = document.querySelector('#personalityNames li[data-name="' + name + '"]');
+                if (personalityLi) {
+                    personalityLi.classList.remove('selected');
+                }
             });
 
             li.addEventListener('click', (event) => {
@@ -339,16 +337,34 @@ document.addEventListener("DOMContentLoaded", function() {
             selectedPersonalities.appendChild(li);
             updateDoneButtonState();
             updateAverageValues(); // Recalculate averages when a new personality is added
+
+            // Highlight the corresponding item in the main list
+            const personalityLi = document.querySelector('#personalityNames li[data-name="' + name + '"]');
+            if (personalityLi) {
+                personalityLi.classList.add('selected'); // Add 'selected' class
+            }
         }
+    }
+
+    function generateRandomCode() {
+        return Math.floor(Math.random() * 1000000).toString().padStart(6, '0');
+    }
+
+    function updateDoneButtonState() {
+        doneButton.disabled = selectedPersonalities.children.length == 0;
     }
 
     resetButton.addEventListener('click', function() {
         // Remove both individual and average radar areas
         d3.select("#radarChart svg g").selectAll(".individual-radar-area").remove();
         d3.select("#radarChart svg g").selectAll(".average-radar-area").remove();
-        d3.selectAll("#personalityNames li")
-            .style("font-weight", "normal")
-            .style("background-color", "transparent");
+
+        // Remove top-k highlights
+        const listItems = document.querySelectorAll("#personalityNames li");
+        listItems.forEach(li => {
+            li.classList.remove('top-k');
+            // Keep 'selected' class intact
+        });
     });
 
     applyKNNButton.addEventListener('click', function() {
@@ -374,7 +390,7 @@ document.addEventListener("DOMContentLoaded", function() {
         const code = generateRandomCode();
         document.getElementById('generatedCodeDisplay').textContent = `Your code is: ${code}`;
         console.log("Generated code:", code);
-    
+
         const selectedPersonalityNodes = document.querySelectorAll('#selectedPersonalities li');
         const personalities = Array.from(selectedPersonalityNodes).map(node => {
             const name = node.textContent.replace(/\×$/, '').trim();
@@ -385,7 +401,7 @@ document.addEventListener("DOMContentLoaded", function() {
             }
             return { name, values: personality.values };
         }).filter(p => p !== null); // Filter out any null entries due to missing personalities
-    
+
         try {
             const response = await fetch('/api/savePersonalities', {
                 method: 'POST',
@@ -394,7 +410,7 @@ document.addEventListener("DOMContentLoaded", function() {
                 },
                 body: JSON.stringify({ code, personalities })
             });
-    
+
             const result = await response.json();
             if (response.ok) {
                 document.getElementById('responseMessage').textContent = 'Personalities saved successfully!';
@@ -406,7 +422,6 @@ document.addEventListener("DOMContentLoaded", function() {
             document.getElementById('responseMessage').textContent = 'Failed to save personalities. Please try again.';
         }
     });
-    
 
     document.getElementById('logoutButton').addEventListener('click', function() {
         localStorage.removeItem('token');   // Remove the authentication token
@@ -415,8 +430,3 @@ document.addEventListener("DOMContentLoaded", function() {
         window.location.href = 'login.html'; // Redirect the user to the login page
     });
 });
-
-
-
-
-
