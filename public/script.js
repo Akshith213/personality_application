@@ -60,6 +60,8 @@ document.addEventListener("DOMContentLoaded", function() {
         // Add more personalities as needed
     ];
 
+    let currentPersonalityValues = null; // To store the traits of the currently viewed personality
+
     function loadPersonalities() {
         const personalityList = d3.select("#personalityNames");
         personalityList.selectAll("*").remove(); // Clear existing list items before adding new ones
@@ -70,13 +72,15 @@ document.addEventListener("DOMContentLoaded", function() {
                 .text(personality.name)
                 .on("click", () => {
                     showPersonalityRadar(personality.values);
+                    highlightCurrentPersonality(personality.name);
+                    currentPersonalityValues = personality.values; // Update the current personality values
                 });
             const addSymbol = document.createElement("span");
             addSymbol.classList.add("add-symbol");
             addSymbol.innerHTML = "+";
             addSymbol.addEventListener("click", (event) => {
                 event.stopPropagation(); // Prevent triggering the li's click event
-                addPersonalityToSelected(personality.name); // Ensure the radar chart can be updated from the selected list
+                addPersonalityToSelected(personality.name);
             });
             li.node().appendChild(addSymbol);
 
@@ -85,6 +89,20 @@ document.addEventListener("DOMContentLoaded", function() {
                 li.classed('selected', true);
             }
         });
+    }
+
+    function highlightCurrentPersonality(name) {
+        // Remove 'current' class from all list items
+        const listItems = document.querySelectorAll("#personalityNames li");
+        listItems.forEach(li => {
+            li.classList.remove('current');
+        });
+
+        // Add 'current' class to the clicked personality
+        const personalityLi = document.querySelector('#personalityNames li[data-name="' + name + '"]');
+        if (personalityLi) {
+            personalityLi.classList.add('current');
+        }
     }
 
     function drawConcentricCircles(svg, rScale, levels) {
@@ -221,19 +239,38 @@ document.addEventListener("DOMContentLoaded", function() {
         }));
         distances.sort((a, b) => a.distance - b.distance);
         const k = parseInt(kSelector.value, 10);
-        const topKPersonalities = distances.slice(0, k).map(p => p.name);
+        const topKPersonalities = distances.slice(1, k + 1).map(p => p.name); // Exclude the current personality
         reorderList(topKPersonalities);
         highlightTopKPersonalities(topKPersonalities);
     }
 
     function reorderList(topKPersonalities) {
         const list = document.getElementById("personalityNames");
-        const items = Array.from(list.childNodes);
-        topKPersonalities.forEach(personalityName => {
-            const item = items.find(item => item.textContent.replace(/\×$/, '').trim() === personalityName);
-            if (item) {
-                list.insertBefore(item, list.firstChild);
+        const items = Array.from(list.children); // Use 'children' to get element nodes
+        const remainingItems = [];
+
+        // Collect items that are not in topKPersonalities
+        items.forEach(item => {
+            const name = item.getAttribute('data-name');
+            if (!topKPersonalities.includes(name)) {
+                remainingItems.push(item);
             }
+        });
+
+        // Clear the list
+        list.innerHTML = '';
+
+        // Append topKPersonalities first
+        topKPersonalities.forEach(name => {
+            const item = items.find(item => item.getAttribute('data-name') === name);
+            if (item) {
+                list.appendChild(item);
+            }
+        });
+
+        // Append the remaining items
+        remainingItems.forEach(item => {
+            list.appendChild(item);
         });
     }
 
@@ -246,7 +283,7 @@ document.addEventListener("DOMContentLoaded", function() {
             } else {
                 li.classList.remove('top-k');
             }
-            // Keep 'selected' class intact
+            // Keep 'selected' and 'current' classes intact
         });
     }
 
@@ -330,6 +367,8 @@ document.addEventListener("DOMContentLoaded", function() {
                 const personality = personalityData.find(p => p.name === name);
                 if (personality) {
                     showPersonalityRadar(personality.values);
+                    highlightCurrentPersonality(name);
+                    currentPersonalityValues = personality.values; // Update the current personality values
                 }
             });
 
@@ -355,26 +394,29 @@ document.addEventListener("DOMContentLoaded", function() {
     }
 
     resetButton.addEventListener('click', function() {
-        // Remove both individual and average radar areas
+        // Remove the individual radar area
         d3.select("#radarChart svg g").selectAll(".individual-radar-area").remove();
-        d3.select("#radarChart svg g").selectAll(".average-radar-area").remove();
 
-        // Remove top-k highlights
+        // Remove 'current' and 'top-k' highlights
         const listItems = document.querySelectorAll("#personalityNames li");
         listItems.forEach(li => {
+            li.classList.remove('current');
             li.classList.remove('top-k');
             // Keep 'selected' class intact
         });
+
+        currentPersonalityValues = null; // Reset the current personality values
+
+        // Update the average radar area
+        updateAverageValues();
     });
 
     applyKNNButton.addEventListener('click', function() {
-        // Get the currentValues from the average radar area or from selected personalities
-        const averageArea = d3.select(".average-radar-area");
-        if (!averageArea.empty()) {
-            const averageValues = averageArea.datum().map(d => d.value);
-            applyKNN(averageValues);
+        // Use the traits of the currently viewed personality
+        if (currentPersonalityValues) {
+            applyKNN(currentPersonalityValues);
         } else {
-            alert("Please select personalities to compute the average before applying KNN.");
+            alert("Please select a personality before applying KNN.");
         }
     });
 
@@ -430,3 +472,4 @@ document.addEventListener("DOMContentLoaded", function() {
         window.location.href = 'login.html'; // Redirect the user to the login page
     });
 });
+

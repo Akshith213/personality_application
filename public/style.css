@@ -113,19 +113,19 @@
     color: darkgreen;
 }
 
+/* Highlight for the currently viewed personality */
+#personalityNames li.current {
+    background-color: lightblue; /* Or any color you prefer */
+}
+
 /* Highlight for selected personalities */
 #personalityNames li.selected {
-    background-color: lightgrey; /* Or any color you prefer */
+    background-color: yellow; /* Or any color you prefer */
     font-weight: bold;
 }
 
 /* Highlight for top K personalities after applying KNN */
 #personalityNames li.top-k {
-    background-color: lightblue; /* Or any color you prefer */
-}
-
-/* If a personality is both selected and in top K */
-#personalityNames li.selected.top-k {
-    background-color: orange; /* Or a different color to show overlap */
+    background-color: lightgreen; /* Or any color you prefer */
 }
 
