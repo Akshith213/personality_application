@@ -1,4 +1,3 @@
-// server.js
 require('dotenv').config();
 const express = require('express');
 const path = require('path');
@@ -34,12 +33,12 @@ app.post('/api/savePersonalities', async (req, res) => {
         res.status(200).json({ message: 'Personalities saved successfully!' });
     } catch (error) {
         console.error('Database error:', error);
-        res.status(500).json({ message: 'Failed to save personalities.' });
+        res.status(500).json({ message: 'Failed to save personalities.', error: error.message });
     }
 });
 
 // Start the server
-const PORT = process.env.PORT || 5005;
+const PORT = process.env.PORT || 5007;
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
 });

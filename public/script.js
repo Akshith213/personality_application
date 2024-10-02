@@ -520,11 +520,51 @@ document.addEventListener("DOMContentLoaded", function() {
     }
 
     // Event listener for the Done button
-    doneButton.addEventListener('click', function() {
+    doneButton.addEventListener('click', async function() {
         const code = generateRandomCode();
-        generatedCodeDisplay.textContent = `Your code is: ${code}`;
+
+        // Get the selected personalities (full objects)
+        const selectedPersonalities = selectedPersonalityNames.map(name => {
+            return personalityData.find(p => p.name === name);
+        });
+
+        // Check if there are selected personalities
+        if (selectedPersonalities.length === 0) {
+            alert("Please select at least one personality before clicking Done.");
+            return;
+        }
+
+        // Prepare data to send to the server
+        const data = {
+            code: code,
+            personalities: selectedPersonalities
+        };
+
+        try {
+            // Send a POST request to the server
+            const response = await fetch('/api/savePersonalities', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            });
+
+            const result = await response.json();
+            if (response.ok) {
+                generatedCodeDisplay.textContent = `Your code is: ${code}`;
+                alert("Your selected personalities have been saved successfully!");
+            } else {
+                console.error('Server error:', result.message);
+                alert("Failed to save your personalities: " + result.message);
+            }
+        } catch (err) {
+            console.error('Network error:', err);
+            alert("An error occurred while saving your personalities. Please try again.");
+        }
     });
 
     // Initial drawing of the radar area
     updateRadarArea();
 });
+
