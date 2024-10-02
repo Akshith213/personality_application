@@ -2,6 +2,7 @@
     width: 90%;
     margin: 0 auto;
     text-align: center;
+    position: relative;
 }
 
 .selector-container {
@@ -13,7 +14,7 @@
 
 .content {
     display: flex;
-    align-items: start;
+    align-items: flex-start;
     height: 600px;
     position: relative;
 }
@@ -24,11 +25,12 @@
     overflow: visible;
     transition: transform 0.3s ease-out;
     flex: 1;
+    margin-right: 80px; /* Increased margin to move radar chart further left */
 }
 
 .personality-list, .sorting-bucket {
     flex: 1;
-    width: 500px;
+    width: 280px; /* Reduced width */
     height: 600px;
     overflow-y: auto;
     padding-left: 10px;
@@ -36,10 +38,10 @@
     border-left: 1px solid #ccc;
     visibility: visible;
     opacity: 1;
-    position: static;  /* Ensure it doesn't overlay or hide other elements */
+    position: static;
 }
 
-.personality-list li, .sorting-bucket li, .selected-personalities li {
+.personality-list li, .sorting-bucket li {
     cursor: pointer;
     margin: 5px 0;
     padding: 5px;
@@ -67,7 +69,7 @@
     background-color: #0056b3;
 }
 
-#kValue, #traitSelect {
+#kValue, #traitSelect, #knnPersonalitySelect {
     padding: 10px;
     border: 2px solid #ccc;
     border-radius: 5px;
@@ -75,12 +77,12 @@
     outline: none;
 }
 
-#kValue:focus, #traitSelect:focus {
+#kValue:focus, #traitSelect:focus, #knnPersonalitySelect:focus {
     border-color: #888;
 }
 
 .axis text {
-    font-size: 14px;
+    font-size: 12px; /* Increased font size */
 }
 
 #radarChart .axis text {
@@ -88,10 +90,11 @@
 }
 
 .delete-symbol {
-    cursor: pointer;
     color: red;
+    font-weight: bold;
+    cursor: pointer;
     margin-left: 10px;
-    transition: color 0.3s;
+    display: inline-block;
 }
 
 .delete-symbol:hover {
@@ -113,19 +116,116 @@
     color: darkgreen;
 }
 
-/* Highlight for the currently viewed personality */
-#personalityNames li.current {
-    background-color: lightblue; /* Or any color you prefer */
+.remove-symbol {
+    cursor: pointer;
+    color: red;
+    margin-left: 10px;
+    transition: color 0.3s;
 }
 
-/* Highlight for selected personalities */
+.remove-symbol:hover {
+    color: darkred;
+}
+
+#personalityNames li.current {
+    background-color: lightblue;
+}
+
 #personalityNames li.selected {
-    background-color: yellow; /* Or any color you prefer */
+    background-color: yellow;
     font-weight: bold;
 }
 
-/* Highlight for top K personalities after applying KNN */
 #personalityNames li.top-k {
-    background-color: lightgreen; /* Or any color you prefer */
+    background-color: lightgreen;
 }
 
+/* Legend styles */
+.legend {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    text-align: left;
+    background-color: #fff;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    width: 250px;
+}
+
+.legend ul {
+    list-style-type: none;
+    padding-left: 0;
+    margin: 0;
+}
+
+.legend li {
+    display: flex;
+    align-items: center;
+    margin-bottom: 5px;
+}
+
+.legend-color {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    margin-right: 10px;
+}
+
+.legend-color.current {
+    background-color: lightblue;
+}
+
+.legend-color.selected {
+    background-color: yellow;
+}
+
+.legend-color.top-k {
+    background-color: lightgreen;
+}
+
+/* Selected Personalities Area */
+.selected-personalities {
+    margin-top: 20px;
+}
+
+.selected-personalities ul {
+    max-height: 200px;
+    overflow-y: auto;
+    padding: 0;
+    list-style-type: none;
+}
+
+.selected-personalities li {
+    cursor: default;
+    margin: 5px 0;
+    padding: 5px;
+    border-radius: 5px;
+    word-wrap: break-word;
+    white-space: normal;
+    background-color: #e0e0e0;
+}
+
+/* Draggable point styles */
+.draggable-point {
+    cursor: pointer;
+}
+
+.draggable-point.active {
+    fill: darkred;
+}
+
+/* Sorting note style */
+.sorting-note {
+    font-size: 12px;
+    color: #555;
+    margin-top: 10px;
+    text-align: left;
+}
+
+/* Generated Code Display */
+#generatedCodeDisplay {
+    margin-top: 20px;
+    font-size: 18px;
+    font-weight: bold;
+}
