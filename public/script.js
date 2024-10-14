@@ -13,6 +13,7 @@ document.addEventListener("DOMContentLoaded", function() {
     const doneButton = document.getElementById("doneButton");
     const generatedCodeDisplay = document.getElementById("generatedCodeDisplay");
     const knnPersonalitySelect = document.getElementById('knnPersonalitySelect');
+    const showCustomPersonalityCheckbox = document.getElementById('showCustomPersonality');
 
     let personalityData = [
         {"name": "Dynamic Leader with Balanced Emotions and Practical Insights", "values": [0.8, 0.5, 0.8, 0.5, 0.2]},
@@ -48,7 +49,7 @@ document.addEventListener("DOMContentLoaded", function() {
         {"name": "Kindhearted Pragmatist with Balanced Emotions and Practical Insights", "values": [0.2, 0.8, 0.5, 0.8, 0.2]},
         {"name": "Warm Idealist with Practical Insights and Emotional Intensity", "values": [0.5, 0.8, 0.2, 0.8, 0.8]},
         {"name": "Influential Motivator with Balanced Emotions and Innovation", "values": [0.8, 0.8, 0.8, 0.5, 0.8]},
-        {"name": "Reflective Mediator with Practical Insights and Balanced Emotions", "values": [0.2, 0.8, 0.5, 0.5, 0.8]},
+        {"name": "Reflective Mediator with Practical Insights and Balanced Emotions", "values": [0.2, 0.5, 0.5, 0.8, 0.8]},
         {"name": "Reserved Innovator with Balanced Emotions and Practical Insights", "values": [0.2, 0.5, 0.8, 0.5, 0.8]},
         {"name": "Enthusiastic Creator with Emotional Intensity and Practical Skills", "values": [0.8, 0.5, 0.8, 0.5, 0.8]},
         {"name": "Methodical Thinker with Practical Insights and Balanced Emotions", "values": [0.2, 0.5, 0.8, 0.2, 0.8]},
@@ -59,16 +60,40 @@ document.addEventListener("DOMContentLoaded", function() {
         {"name": "Empathetic Visionary with Practical Skills and Balanced Emotions", "values": [0.5, 0.8, 0.8, 0.5, 0.8]},
         {"name": "Dedicated Innovator with Emotional Intensity and Practical Insights", "values": [0.2, 0.8, 0.8, 0.5, 0.8]}
         // Add more personalities as needed
+        // ... (personality data remains unchanged)
     ];
 
     let currentPersonalityValues = [0.5, 0.5, 0.5, 0.5, 0.5]; // Initialize with default values
+    let customPersonalityValues = [...currentPersonalityValues]; // To store the custom personality
     let selectedPersonalityNames = []; // To keep track of selected personalities
+    let topKPersonalities = []; // To keep track of Top-K similar personalities
 
     function loadPersonalities() {
         const personalityList = d3.select("#personalityNames");
         personalityList.selectAll("*").remove(); // Clear existing list items before adding new ones
 
-        personalityData.forEach(personality => {
+        let sortedData = [];
+
+        if (topKPersonalities.length > 0) {
+            // Add top K personalities first
+            topKPersonalities.forEach(name => {
+                const personality = personalityData.find(p => p.name === name);
+                if (personality) {
+                    sortedData.push(personality);
+                }
+            });
+
+            // Add the rest, excluding top K
+            personalityData.forEach(personality => {
+                if (!topKPersonalities.includes(personality.name)) {
+                    sortedData.push(personality);
+                }
+            });
+        } else {
+            sortedData = personalityData;
+        }
+
+        sortedData.forEach(personality => {
             const li = personalityList.append("li")
                 .attr("data-name", personality.name) // Added data attribute
                 .text(personality.name)
@@ -76,6 +101,7 @@ document.addEventListener("DOMContentLoaded", function() {
                     showPersonalityRadar(personality.values);
                     highlightCurrentPersonality(personality.name);
                     currentPersonalityValues = [...personality.values]; // Copy the current personality values
+                    updateRadarArea(); // Update the radar chart
                 });
 
             const addSymbol = document.createElement("span");
@@ -96,6 +122,14 @@ document.addEventListener("DOMContentLoaded", function() {
             });
             li.node().appendChild(addSymbol);
         });
+
+        // Highlight top K personalities
+        highlightTopKPersonalities(topKPersonalities);
+        // Highlight current personality if any
+        const currentPersonalityName = document.querySelector('#personalityNames li.current')?.getAttribute('data-name');
+        if (currentPersonalityName) {
+            highlightCurrentPersonality(currentPersonalityName);
+        }
     }
 
     function togglePersonalitySelection(name, addSymbol, li) {
@@ -107,6 +141,11 @@ document.addEventListener("DOMContentLoaded", function() {
             addSymbol.classList.remove("add-symbol");
             addSymbol.classList.add("remove-symbol");
             li.classed('selected', true);
+
+            // If the personality is currently viewed, remove 'current' class to change background to yellow
+            if (li.classed('current')) {
+                li.classed('current', false);
+            }
         } else {
             // Remove from selected
             selectedPersonalityNames.splice(index, 1);
@@ -159,7 +198,7 @@ document.addEventListener("DOMContentLoaded", function() {
     function initializeRadarChartBase(traits) {
         const levels = levelsBig5;
         const numTraits = traits.length;
-        const width = 600, height = 600;
+        const width = 500, height = 550; // Increased width
         const margin = 80, radius = Math.min(width, height) / 2 - margin;
         const angleSlice = Math.PI * 2 / numTraits;
         const rScale = d3.scaleLinear().range([0, radius]).domain([0, 1]);
@@ -229,6 +268,9 @@ document.addEventListener("DOMContentLoaded", function() {
 
                             // Update the radar area
                             updateRadarArea();
+
+                            // Update custom personality values
+                            customPersonalityValues[i] = closestLevel;
                         }
                     })
                     .on("end", function(event) {
@@ -240,7 +282,7 @@ document.addEventListener("DOMContentLoaded", function() {
         return { svg: svg, rScale: rScale, angleSlice: angleSlice };
     }
 
-    function drawRadarArea(svg, rScale, angleSlice, values, color, fillOpacity, className, fillArea = true) {
+    function drawRadarArea(svg, rScale, angleSlice, values, color, fillOpacity, className, fillArea = true, lineStyle = "solid") {
         const pointsData = values.map((value, i) => ({
             value: value,
             angle: angleSlice * i
@@ -255,7 +297,8 @@ document.addEventListener("DOMContentLoaded", function() {
                 .curve(d3.curveLinearClosed))
             .style("stroke", color)
             .style("stroke-width", 2)
-            .style("stroke-opacity", 1);
+            .style("stroke-opacity", 1)
+            .style("stroke-dasharray", lineStyle === "dashed" ? "4 4" : "0");
 
         if (fillArea) {
             path.style("fill", color)
@@ -266,7 +309,8 @@ document.addEventListener("DOMContentLoaded", function() {
     }
 
     function updateRadarArea() {
-        d3.select("#radarChart svg g").selectAll(".individual-radar-area").remove();
+        const svgGroup = d3.select("#radarChart svg g");
+        svgGroup.selectAll(".individual-radar-area").remove();
         drawRadarArea(radarChartBase.svg, radarChartBase.rScale, radarChartBase.angleSlice, currentPersonalityValues, "lightblue", 0.6, "individual-radar-area");
 
         // Update draggable points
@@ -279,11 +323,28 @@ document.addEventListener("DOMContentLoaded", function() {
                 const angle = radarChartBase.angleSlice * i - Math.PI / 2;
                 return radarChartBase.rScale(currentPersonalityValues[i]) * Math.sin(angle);
             });
+
+        // Draw custom personality overlay if checkbox is checked
+        if (showCustomPersonalityCheckbox.checked) {
+            svgGroup.selectAll(".custom-radar-area").remove();
+            drawRadarArea(
+                radarChartBase.svg,
+                radarChartBase.rScale,
+                radarChartBase.angleSlice,
+                customPersonalityValues,
+                "purple",
+                0.5,
+                "custom-radar-area",
+                false, // Do not fill the area
+                "dashed" // Line style
+            );
+        } else {
+            svgGroup.selectAll(".custom-radar-area").remove();
+        }
     }
 
     function showPersonalityRadar(personalityValues) {
         currentPersonalityValues = [...personalityValues];
-
         updateRadarArea();
     }
 
@@ -327,54 +388,33 @@ document.addEventListener("DOMContentLoaded", function() {
     }
 
     function applyKNN(currentValues) {
-        const dataToUse = personalityData;
+        const dataToUse = personalityData.filter(personality => {
+            // Exclude the current personality if applying KNN to a specific one
+            const selectedOption = knnPersonalitySelect.value;
+            if (selectedOption === 'current') {
+                const currentPersonalityName = document.querySelector('#personalityNames li.current')?.getAttribute('data-name');
+                return personality.name !== currentPersonalityName;
+            }
+            return true; // For 'custom' and 'average', include all
+        });
+
         const distances = dataToUse.map(personality => ({
             name: personality.name,
             distance: calculateDistance(personality.values, currentValues)
         }));
         distances.sort((a, b) => a.distance - b.distance);
         const k = parseInt(kSelector.value, 10);
-        const topKPersonalities = distances.slice(0, k).map(p => p.name);
+        topKPersonalities = distances.slice(0, k).map(p => p.name);
 
-        reorderList(topKPersonalities);
         highlightTopKPersonalities(topKPersonalities);
+        loadPersonalities(); // Reload to reorder the list with top K on top
     }
 
-    function reorderList(topKPersonalities) {
-        const list = document.getElementById("personalityNames");
-        const items = Array.from(list.children);
-        const remainingItems = [];
-
-        // Collect items that are not in topKPersonalities
-        items.forEach(item => {
-            const name = item.getAttribute('data-name');
-            if (!topKPersonalities.includes(name)) {
-                remainingItems.push(item);
-            }
-        });
-
-        // Clear the list
-        list.innerHTML = '';
-
-        // Append topKPersonalities first
-        topKPersonalities.forEach(name => {
-            const item = items.find(item => item.getAttribute('data-name') === name);
-            if (item) {
-                list.appendChild(item);
-            }
-        });
-
-        // Append the remaining items
-        remainingItems.forEach(item => {
-            list.appendChild(item);
-        });
-    }
-
-    function highlightTopKPersonalities(topKPersonalities) {
+    function highlightTopKPersonalities(topKPersonalitiesList) {
         const listItems = document.querySelectorAll("#personalityNames li");
         listItems.forEach(li => {
             const personalityName = li.getAttribute('data-name');
-            if (topKPersonalities.includes(personalityName)) {
+            if (topKPersonalitiesList.includes(personalityName)) {
                 li.classList.add('top-k');
             } else {
                 li.classList.remove('top-k');
@@ -438,7 +478,7 @@ document.addEventListener("DOMContentLoaded", function() {
         });
     }
 
-    // Changed 'const' to 'let' to allow re-initialization
+    // Initialize the radar chart
     let radarChartBase = initializeRadarChartBase(currentTraits);
 
     resetButton.addEventListener('click', function() {
@@ -455,6 +495,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
         // Reset currentPersonalityValues to default
         currentPersonalityValues = [0.5, 0.5, 0.5, 0.5, 0.5];
+        customPersonalityValues = [...currentPersonalityValues]; // Reset custom personality values
 
         // Re-initialize the radar chart
         radarChartBase = initializeRadarChartBase(currentTraits);
@@ -473,7 +514,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
         if (selectedOption === 'custom') {
             // Use the custom personality from the radar chart
-            valuesToUse = currentPersonalityValues;
+            valuesToUse = customPersonalityValues;
         } else if (selectedOption === 'current') {
             // Use the currently selected personality
             const currentPersonalityName = document.querySelector('#personalityNames li.current')?.getAttribute('data-name');
@@ -507,6 +548,10 @@ document.addEventListener("DOMContentLoaded", function() {
         if (valuesToUse) {
             applyKNN(valuesToUse);
         }
+    });
+
+    showCustomPersonalityCheckbox.addEventListener('change', function() {
+        updateRadarArea();
     });
 
     sortButton.addEventListener('click', sortPersonalities);
@@ -567,4 +612,3 @@ document.addEventListener("DOMContentLoaded", function() {
     // Initial drawing of the radar area
     updateRadarArea();
 });
-

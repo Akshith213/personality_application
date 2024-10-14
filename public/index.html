@@ -11,13 +11,14 @@
 <body>
     <div class="container">
         <h1>Personality Traits Radar Chart</h1>
-        <!-- Legend moved to the top left corner -->
+        <!-- Updated Legend: Added custom personality outline -->
         <div class="legend">
-            <h3>Legend</h3>
             <ul>
-                <li><span class="legend-color current"></span> Currently Selected Personality</li>
+                <li><span class="legend-color current"></span> Currently Viewed Personality</li>
                 <li><span class="legend-color selected"></span> Selected Personalities</li>
                 <li><span class="legend-color top-k"></span> Top K Similar Personalities</li>
+                <li><span class="legend-color average-radar"></span> Average Radar Outline</li>
+                <li><span class="legend-color custom-personality"></span> Custom Personality Outline</li>
             </ul>
         </div>
         <div class="selector-container">
@@ -33,13 +34,19 @@
             <label for="knnPersonalitySelect">Apply KNN to:</label>
             <select id="knnPersonalitySelect">
                 <option value="custom">Custom Personality (Radar Chart)</option>
-                <option value="current">Currently Selected Personality</option>
+                <option value="current">Currently Viewed Personality</option>
                 <option value="average">Average Personality</option>
             </select>
             <button id="applyKNN">Apply KNN</button>
         </div>
         <div class="content">
-            <div id="radarChart"></div>
+            <div class="radar-container">
+                <div id="radarChart"></div>
+                <!-- Moved toggle for custom personality overlay to bottom -->
+                <div class="radar-controls">
+                    <label><input type="checkbox" id="showCustomPersonality" checked> Show Custom Personality</label>
+                </div>
+            </div>
             <div class="personality-list">
                 <h3>Personality List</h3>
                 <ul id="personalityNames"></ul>

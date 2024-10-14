@@ -1,5 +1,5 @@
 .container {
-    width: 90%;
+    width: 100%;
     margin: 0 auto;
     text-align: center;
     position: relative;
@@ -17,20 +17,35 @@
     align-items: flex-start;
     height: 600px;
     position: relative;
+    overflow: hidden; /* Prevents any overflow from causing scroll */
+}
+
+.radar-container {
+    width: 500px; /* Increased width */
+    height: 600px;
+    position: relative;
+    flex: 0 0 500px; /* Fixed width to prevent flex shrinking */
+    margin-right: 20px; /* Adjusted margin to save space */
 }
 
 #radarChart {
-    width: 600px;
-    height: 600px;
+    width: 100%;
+    height: 550px; /* Adjusted height to accommodate controls */
     overflow: visible;
     transition: transform 0.3s ease-out;
-    flex: 1;
-    margin-right: 80px; /* Increased margin to move radar chart further left */
+}
+
+.radar-controls {
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    margin-bottom: 10px;
 }
 
 .personality-list, .sorting-bucket {
     flex: 1;
-    width: 280px; /* Reduced width */
+    width: 200px;
     height: 600px;
     overflow-y: auto;
     padding-left: 10px;
@@ -39,6 +54,14 @@
     visibility: visible;
     opacity: 1;
     position: static;
+}
+
+.personality-list {
+    margin-right: 20px; /* Add some space between personality-list and sorting-bucket */
+}
+
+.personality-list h3, .sorting-bucket h3 {
+    margin-top: 0;
 }
 
 .personality-list li, .sorting-bucket li {
@@ -127,17 +150,23 @@
     color: darkred;
 }
 
-#personalityNames li.current {
-    background-color: lightblue;
-}
-
+/* Background colors for list items */
 #personalityNames li.selected {
     background-color: yellow;
     font-weight: bold;
 }
 
-#personalityNames li.top-k {
+#personalityNames li.top-k:not(.selected):not(.current) {
     background-color: lightgreen;
+}
+
+#personalityNames li.current {
+    background-color: lightblue;
+}
+
+/* Ensure 'current' class takes precedence over 'selected' */
+#personalityNames li.current.selected {
+    background-color: lightblue;
 }
 
 /* Legend styles */
@@ -172,16 +201,35 @@
     margin-right: 10px;
 }
 
+/* Currently Viewed Personality */
 .legend-color.current {
     background-color: lightblue;
 }
 
+/* Selected Personalities */
 .legend-color.selected {
     background-color: yellow;
 }
 
+/* Top-K Personalities */
 .legend-color.top-k {
     background-color: lightgreen;
+}
+
+/* Average Radar Outline as a red line */
+.legend-color.average-radar {
+    width: 20px;
+    height: 0;
+    border-top: 2px solid red;
+    margin-right: 10px;
+}
+
+/* Custom Personality Outline as a dashed purple line */
+.legend-color.custom-personality {
+    width: 20px;
+    height: 0;
+    border-top: 2px dashed purple;
+    margin-right: 10px;
 }
 
 /* Selected Personalities Area */
@@ -228,4 +276,13 @@
     margin-top: 20px;
     font-size: 18px;
     font-weight: bold;
+}
+
+/* Adjust sorting bucket items to prevent overflow */
+.sortable-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    word-wrap: break-word;
+    white-space: normal;
 }
